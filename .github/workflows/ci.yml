@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install Bitcoin Dependencies
+        run: sudo apt-get install build-essential cmake pkgconf python3 libevent-dev libboost-dev capnproto libcapnp-dev
+      - name: Checkout Bitcoin Core v30.0
+        run: git clone --depth 1 --branch 30.x https://github.com/bitcoin/bitcoin.git
+      - name: Build and Install Bitcoin Core
+        run: cd bitcoin && cmake -B build -DENABLE_IPC=ON -DENABLE_WALLET=OFF && cmake --build build -j 16
+      - name: Run Bitcoin Core Daemon
+        run: cd bitcoin && ./build/bin/bitcoin-node -chain=regtest -ipcbind=unix -debug=ipc -daemon
+      - name: Run Test Suite
+        run: cargo test
